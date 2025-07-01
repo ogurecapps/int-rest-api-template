@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <lookupTable>
-<entry table="RESTRoutes" key="Sample.API.impl:TestGet">Sample.Process.TestGet</entry>
-<entry table="RESTRoutes" key="Sample.API.impl:TestPost">Sample.Process.TestPost</entry>
+<entry table="RESTRoutes" key="Sample.API:TestGet">Sample.Process.TestGet</entry>
+<entry table="RESTRoutes" key="Sample.API:TestPost">Sample.Process.TestPost</entry>
 </lookupTable>

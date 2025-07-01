@@ -2,6 +2,11 @@
 Class REST.Service.API Extends (Ens.BusinessService, %REST.Impl)
 {
 
+/// Collecting metrics
+Property CollectMetrics As %Boolean;
+
+Parameter SETTINGS = "CollectMetrics";
+
 /// Just add it to your impl class: Quit ##class(REST.Service.API).Call(body, $$$CurrentMethod, $CLASSNAME())
 /// (requires a 'Include %occIO')
 /// pRequest can be a null or %Stream.Object or %DynamicObject
@@ -59,8 +64,11 @@ ClassMethod Error(status As %Status) As %DynamicObject
 
 Method OnProcessInput(pInput As Ens.StreamContainer, Output pOutput As Ens.StreamContainer) As %Status
 {
-    Set route = pInput.Attributes.GetAt("SourceClass")_":"_pInput.Attributes.GetAt("SourceMethod")
-    Set target = $GET(^Ens.LookupTable("RESTRoutes", route))
+    Set start = $ZHOROLOG
+    Set appName = $REPLACE(pInput.Attributes.GetAt("SourceClass"),".impl","")
+    Set methodName = pInput.Attributes.GetAt("SourceMethod")
+    Set pOutput = ##class(Ens.StreamContainer).%New()
+    Set target = $GET(^Ens.LookupTable("RESTRoutes", appName_":"_methodName))
     
     If target '= "" {
         Set tSC = ..SendRequestSync(target, pInput, .pOutput)
@@ -68,7 +76,12 @@ Method OnProcessInput(pInput As Ens.StreamContainer, Output pOutput As Ens.Strea
         Set errorText = "Route %1 not found. You need to add your routes to the RESTRoutes lookup table. "_
                         "For example: key = Sample.API.impl:TestGet, value = Sample.Process.TestGet, where "_
                         "Sample.Process.TestGet - it is a process that processes a GET /test API call."
-        Set tSC = $$$ERROR($$$GeneralError, $$$FormatText(errorText, route))
+        Set tSC = $$$ERROR($$$GeneralError, $$$FormatText(errorText, appName_":"_methodName))
+    }
+
+    If ..CollectMetrics {
+        Set status = ##class(REST.Storage.Metrics).Log(appName, methodName, $ZHOROLOG - start, $$$ISERR(tSC))
+        If $$$ISERR(status) $$$LOGWARNING($$$FormatText("Error in metrics collecting: %1", $SYSTEM.Status.GetErrorText(status)))
     }
 
     Quit tSC
