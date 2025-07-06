@@ -7,12 +7,16 @@ Property CollectMetrics As %Boolean;
 
 Parameter SETTINGS = "CollectMetrics";
 
+Parameter HTTP429TOOMANYREQUESTS As STRING = "429 Too Many Requests";
+
 /// Just add it to your impl class: Quit ##class(REST.Service.API).Call(body, $$$CurrentMethod, $CLASSNAME())
 /// (requires a 'Include %occIO')
 /// pRequest can be a null or %Stream.Object or %DynamicObject
 ClassMethod Call(pRequest = {$$$NULLOREF}, pMethodName As %String, pClassName As %String) As %DynamicObject
 {
     Do ..%SetContentType("application/json")
+    
+    Quit:..RateLimited(pMethodName, pClassName, .tSC) ..Error(tSC, ..#HTTP429TOOMANYREQUESTS)
     
     Set input = ##class(Ens.StreamContainer).%New()
     Set input.Stream = ##class(%Stream.GlobalCharacter).%New()
@@ -39,6 +43,36 @@ ClassMethod Call(pRequest = {$$$NULLOREF}, pMethodName As %String, pClassName As
     Quit ..Success(output)
 }
 
+/// API calls per minute can be limited. 
+/// You can use a wildcard (*) as a method name to limit all application methods
+ClassMethod RateLimited(pMethodName As %String, pClassName As %String, Output pStatus As %Status) As %Boolean
+{
+    Set pStatus = $$$OK
+    Set appName = $REPLACE(pClassName, ".impl", "")
+    
+    Set route = appName_":"_pMethodName
+    Set limit = $GET(^Ens.LookupTable("RESTRateLimits", route), 0)
+    
+    If limit = 0 {  // Check wildcard
+        Set route = appName_":*"
+        Set limit = $GET(^Ens.LookupTable("RESTRateLimits", route), 0)
+    }
+    
+    Quit:limit<=0 0 // No limits
+
+    Set ts = $ZDATETIME($HOROLOG, 3, 2)
+    Set count = $GET(^REST.Rate(route, ts), 0)
+    Set count = $INCREMENT(count)
+    Set ^REST.Rate(route, ts) = count
+
+    If count >= limit {
+        Set pStatus = $$$ERROR($$$GeneralError, $$$FormatText("The limit for route %1 has been reached. Current call counter = %2 limit is %3", route, count, limit))
+        Quit 1
+    }
+
+    Quit 0
+}
+
 ClassMethod Success(pOutput As Ens.StreamContainer) As %DynamicObject
 {
     Do ..%SetStatusCode(##class(%CSP.REST).#HTTP200OK)
@@ -55,17 +89,17 @@ ClassMethod Success(pOutput As Ens.StreamContainer) As %DynamicObject
     }
 }
 
-ClassMethod Error(status As %Status) As %DynamicObject
+ClassMethod Error(pStatus As %Status, pHttpCode = {##class(%CSP.REST).#HTTP500INTERNALSERVERERROR}) As %DynamicObject
 {
-    Do ..%SetStatusCode(##class(%CSP.REST).#HTTP500INTERNALSERVERERROR)
-    Do ##class(%CSP.REST).StatusToJSON(status, .json)
+    Do ..%SetStatusCode(pHttpCode)
+    Do ##class(%CSP.REST).StatusToJSON(pStatus, .json)
     Quit json
 }
 
 Method OnProcessInput(pInput As Ens.StreamContainer, Output pOutput As Ens.StreamContainer) As %Status
 {
     Set start = $ZHOROLOG
-    Set appName = $REPLACE(pInput.Attributes.GetAt("SourceClass"),".impl","")
+    Set appName = $REPLACE(pInput.Attributes.GetAt("SourceClass"), ".impl", "")
     Set methodName = pInput.Attributes.GetAt("SourceMethod")
     Set pOutput = ##class(Ens.StreamContainer).%New()
     Set target = $GET(^Ens.LookupTable("RESTRoutes", appName_":"_methodName))

@@ -2,17 +2,16 @@
 Yet another API template for the InterSystems IRIS Data platform<br><br>
 ![Production](https://raw.githubusercontent.com/ogurecapps/ogurecapps.github.io/refs/heads/master/screen.png)
 ## What's new?
-Added performance sensors and failed/successful request counts. All metrics are provided in [OpenMetrics](https://openmetrics.io) format. So, you can grab it with [Prometheus](https://prometheus.io) and visualize it in [Grafana](https://grafana.com). Details about setting up monitoring in the IRIS can be found [here](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GCM_rest). Don't forget to check the roles of `api/monitor` application and to enable custom sensors in the IRIS terminal:
-```
-zn "%SYS"
-d ##class(SYS.Monitor.SAM.Config).AddApplicationClass("REST.Core.Monitor", "YOUR_NAMESPACE")
-```
+Added simple implementation of rate limits. Now, you can set up the maximum amount of requests per minute for your APIs. Just set the maximum value by the route key in the lookup table `RESTRateLimits`, similar `RESTRoutes` table. Also, you can use a wildcard (*) as a method name: `Sample.API:*`
+
+*Tip: If you need a more flexible and enterprise solution, look at [API Manager](https://docs.intersystems.com/components/csp/docbook/Doc.View.cls?KEY=PAGE_apimgr)*
 ## About
-Features from the box:
+Features out-of-the-box:
 
 - Adds online [OpenAPI 2.0](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md) specification (see `/swagger` endpoint) to your APIs
 - Adds `/healthcheck` endpoint - a simple way to check API publication
 - Metrics in [OpenMetrics](https://openmetrics.io) format are included
+- Rate limits (requests per minute) can be set
 - And main: adds to all your API common entry point in Interoperability (Production). That, in turn, allows you to use the best IRIS feature - visual traces! :fire:
 ## Quick start
 1. Implement the needed API using a [specification-first way](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GREST_intro)
@@ -25,3 +24,9 @@ Quit ##class(REST.Service.API).Call(body, $$$CurrentMethod, $CLASSNAME())
 5. Create and add to Production handlers for the methods of your custom API. Set `REST.Process.CallHandler` as the parent class if you need correct links building in Production UI. You can find a sample of handler in the `Sample.Process.TestPost` class
 6. Add routes for API methods to the `RESTRoutes` lookup table (sample `RESTRoutes.LUT`)
 7. Enjoy! :sunglasses:
+## Monitoring
+All metrics are provided in [OpenMetrics](https://openmetrics.io) format. So, you can grab it with [Prometheus](https://prometheus.io) and visualize it in [Grafana](https://grafana.com). Details about setting up monitoring in the IRIS can be found [here](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GCM_rest). Don't forget to check the roles of `api/monitor` application and to enable custom sensors in the IRIS terminal:
+```
+zn "%SYS"
+d ##class(SYS.Monitor.SAM.Config).AddApplicationClass("REST.Core.Monitor", "YOUR_NAMESPACE")
+```

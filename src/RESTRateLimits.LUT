@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<lookupTable>
+<entry table="RESTRateLimits" key="Sample.API:TestGet">5</entry>
+</lookupTable>
