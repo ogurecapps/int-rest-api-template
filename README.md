@@ -2,9 +2,9 @@
 Yet another API template for the InterSystems IRIS Data platform<br><br>
 ![Production](https://raw.githubusercontent.com/ogurecapps/ogurecapps.github.io/refs/heads/master/screen.png)
 ## What's new?
-Added simple implementation of rate limits. Now, you can set up the maximum amount of requests per minute for your APIs. Just set the maximum value by the route key in the lookup table `RESTRateLimits`, similar `RESTRoutes` table. Also, you can use a wildcard (*) as a method name: `Sample.API:*`
+Added simple implementation of rate limits. Now, you can set up the maximum amount of requests per minute for your APIs. Just set the value by the route key in the lookup table `RESTRateLimits`, similar `RESTRoutes` table. Also, you can use a wildcard (*) as a method name: `Sample.API:*`
 
-*Tip: If you need a more flexible and enterprise solution, look at [API Manager](https://docs.intersystems.com/components/csp/docbook/Doc.View.cls?KEY=PAGE_apimgr)*
+*Tip: If you need a more flexible and enterprise solution, I advise you to look at [API Manager](https://docs.intersystems.com/components/csp/docbook/Doc.View.cls?KEY=PAGE_apimgr)*
 ## About
 Features out-of-the-box:
 
